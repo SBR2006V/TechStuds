@@ -1,24 +1,40 @@
-import random
+import numpy as np
+import cv2
 
 def predict_image(image):
-    """
-    Dummy AI prediction function (for demo purposes)
+    img = np.array(image)
+    img = cv2.resize(img, (224, 224))
 
-    Args:
-        image: PIL Image (not used here, but kept for future ML upgrade)
+    # Convert to grayscale
+    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
-    Returns:
-        prediction (str): Risk level
-        confidence (float): Confidence percentage
-    """
+    # --- A: ASYMMETRY ---
+    left = gray[:, :112]
+    right = np.fliplr(gray[:, 112:])
+    asymmetry = np.mean(np.abs(left - right)) / 255
 
-    # Possible outputs
-    risk_levels = ["Low Risk", "Medium Risk", "High Risk"]
+    # --- B: BORDER IRREGULARITY ---
+    edges = cv2.Canny(gray, 100, 200)
+    edge_density = np.sum(edges) / (224 * 224 * 255)
 
-    # Random prediction
-    prediction = random.choice(risk_levels)
+    # --- C: COLOR VARIATION ---
+    std_dev = np.std(img) / 255
 
-    # Random confidence (realistic range)
-    confidence = round(random.uniform(70, 95), 2)
+    # --- REDNESS (extra signal) ---
+    redness = np.mean(img[:, :, 0]) / 255
 
-    return prediction, confidence
+    # --- COMBINE FEATURES ---
+    risk_score = (
+        0.3 * asymmetry +
+        0.25 * edge_density +
+        0.25 * std_dev +
+        0.2 * redness
+    )
+
+    # --- CLASSIFICATION ---
+    if risk_score > 0.55:
+        return "High Risk", round(risk_score * 100, 2)
+    elif risk_score > 0.35:
+        return "Medium Risk", round(risk_score * 100, 2)
+    else:
+        return "Low Risk", round(risk_score * 100, 2)
