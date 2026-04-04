@@ -53,7 +53,7 @@ export function ScreeningPanel() {
     formData.append("file", file)
 
     try {
-      const res = await fetch("http://localhost:8000/predict", {
+      const res = await fetch("https://techstuds-backend.onrender.com/predict", {
         method: "POST",
         body: formData,
       })
@@ -67,10 +67,15 @@ export function ScreeningPanel() {
       }
 
       setResult({
-        riskLevel: riskMap[data.prediction] || "Low",
-        confidence: data.confidence,
-        recommendation: "AI-based result from backend",
-      })
+  riskLevel: riskMap[data.prediction] || "Low",
+  confidence: data.confidence,
+  recommendation:
+    riskMap[data.prediction] === "High"
+      ? "Consult a dermatologist immediately."
+      : riskMap[data.prediction] === "Medium"
+      ? "Monitor the lesion and consider a check-up."
+      : "Likely benign, continue routine monitoring.",
+})
 
     } catch (error) {
       console.error(error)
