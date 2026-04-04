@@ -38,18 +38,45 @@ export function ScreeningPanel() {
     }
   }
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
+    if (!image) return
+
     setAnalyzing(true)
-    // Mock analysis
-    setTimeout(() => {
-      setResult({
-        riskLevel: "Low",
-        confidence: 87,
-        recommendation:
-          "Based on our AI analysis, the lesion appears benign. Continue regular self-examinations and schedule a routine dermatology check-up within 6 months.",
-      })
+
+    const file = fileInputRef.current?.files?.[0]
+    if (!file) {
       setAnalyzing(false)
-    }, 2500)
+      return
+    }
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      const res = await fetch("http://localhost:8000/predict", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await res.json()
+
+      const riskMap: any = {
+        "Low Risk": "Low",
+        "Medium Risk": "Medium",
+        "High Risk": "High",
+      }
+
+      setResult({
+        riskLevel: riskMap[data.prediction] || "Low",
+        confidence: data.confidence,
+        recommendation: "AI-based result from backend",
+      })
+
+    } catch (error) {
+      console.error(error)
+    }
+
+    setAnalyzing(false)
   }
 
   const handleClear = () => {
@@ -76,39 +103,16 @@ export function ScreeningPanel() {
           {!image ? (
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-secondary/30 p-12 cursor-pointer transition-colors hover:border-primary/40 hover:bg-primary/5"
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click()
-              }}
+              className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-secondary/30 p-12 cursor-pointer hover:border-primary/40 hover:bg-primary/5"
             >
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
-                <Upload className="h-7 w-7" />
-              </div>
-              <p className="text-base font-medium text-foreground mb-1">
-                Click to upload or drag and drop
-              </p>
-              <p className="text-sm text-muted-foreground">
-                JPG, PNG or WEBP (max. 10MB)
-              </p>
+              <Upload className="h-7 w-7 mb-2" />
+              <p>Click to upload</p>
             </div>
           ) : (
             <div className="relative">
-              <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-secondary">
-                <Image
-                  src={image}
-                  alt="Uploaded skin image for analysis"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <button
-                onClick={handleClear}
-                className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-foreground/80 text-background hover:bg-foreground transition-colors"
-              >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Remove image</span>
+              <Image src={image} alt="preview" width={400} height={300} />
+              <button onClick={handleClear}>
+                <X />
               </button>
             </div>
           )}
@@ -122,108 +126,34 @@ export function ScreeningPanel() {
           />
 
           <div className="flex gap-3 mt-4">
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              variant="outline"
-              className="flex-1 gap-2"
-            >
-              <Camera className="h-4 w-4" />
-              {image ? "Change Image" : "Select Image"}
+            <Button onClick={() => fileInputRef.current?.click()}>
+              Select Image
             </Button>
-            <Button
-              onClick={handleAnalyze}
-              disabled={!image || analyzing}
-              className="flex-1 gap-2"
-            >
-              {analyzing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                "Analyze Now"
-              )}
+
+            <Button onClick={handleAnalyze} disabled={!image || analyzing}>
+              {analyzing ? "Analyzing..." : "Analyze"}
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Results Area */}
+      {/* Results */}
       <div className="flex-1">
-        <div className="rounded-xl border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">
-            Analysis Results
-          </h2>
+        <div className="rounded-xl border p-6">
+          <h2>Results</h2>
 
-          {!result && !analyzing ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary mb-4">
-                <AlertCircle className="h-7 w-7 text-muted-foreground" />
-              </div>
-              <p className="text-base font-medium text-foreground mb-1">
-                No analysis yet
-              </p>
-              <p className="text-sm text-muted-foreground max-w-xs">
-                Upload a skin image and click &quot;Analyze Now&quot; to get your AI-powered risk assessment.
-              </p>
-            </div>
-          ) : analyzing ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-              <p className="text-base font-medium text-foreground mb-1">
-                AI is analyzing your image...
-              </p>
-              <p className="text-sm text-muted-foreground">
-                This usually takes 2-3 seconds
-              </p>
-            </div>
-          ) : result ? (
-            <div className="flex flex-col gap-5">
-              {/* Risk Level */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-accent" />
-                  <span className="text-sm font-medium text-foreground">
-                    Risk Level
-                  </span>
-                </div>
-                <span
-                  className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold ${riskColors[result.riskLevel].bg} ${riskColors[result.riskLevel].text} ${riskColors[result.riskLevel].border} border`}
-                >
-                  {result.riskLevel} Risk
+          {result && (
+            <div>
+              <p>
+                Risk:{" "}
+                <span className={riskColors[result.riskLevel].text}>
+                  {result.riskLevel}
                 </span>
-              </div>
-
-              {/* Confidence */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-foreground">
-                    Confidence Score
-                  </span>
-                  <span className="text-lg font-bold text-primary">
-                    {result.confidence}%
-                  </span>
-                </div>
-                <Progress value={result.confidence} className="h-3" />
-              </div>
-
-              {/* Recommendation */}
-              <div className="rounded-lg bg-secondary/80 p-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Recommendation
-                </p>
-                <p className="text-sm text-foreground leading-relaxed">
-                  {result.recommendation}
-                </p>
-              </div>
-
-              {/* CTA */}
-              <Button className="gap-2 w-full" variant="outline">
-                <UserCheck className="h-4 w-4" />
-                Book Dermatologist Consultation
-              </Button>
+              </p>
+              <p>Confidence: {result.confidence}%</p>
+              <p>{result.recommendation}</p>
             </div>
-          ) : null}
+          )}
         </div>
       </div>
     </div>

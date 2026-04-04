@@ -1,25 +1,24 @@
-import numpy as np
-import tensorflow as tf
-
-# Load pretrained model once
-model = tf.keras.applications.MobileNetV2(weights="imagenet")
+import random
 
 def predict_image(image):
-    # Resize to model input
-    img = image.resize((224, 224))
-    img = np.array(img)
+    """
+    Dummy AI prediction function (for demo purposes)
 
-    # Preprocess
-    img = tf.keras.applications.mobilenet_v2.preprocess_input(img)
-    img = np.expand_dims(img, axis=0)
+    Args:
+        image: PIL Image (not used here, but kept for future ML upgrade)
 
-    # Predict
-    preds = model.predict(img)
+    Returns:
+        prediction (str): Risk level
+        confidence (float): Confidence percentage
+    """
 
-    # Decode result
-    decoded = tf.keras.applications.mobilenet_v2.decode_predictions(preds, top=1)[0][0]
+    # Possible outputs
+    risk_levels = ["Low Risk", "Medium Risk", "High Risk"]
 
-    label = decoded[1]
-    confidence = float(decoded[2] * 100)
+    # Random prediction
+    prediction = random.choice(risk_levels)
 
-    return label, confidence
+    # Random confidence (realistic range)
+    confidence = round(random.uniform(70, 95), 2)
+
+    return prediction, confidence
