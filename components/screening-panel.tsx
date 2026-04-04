@@ -199,10 +199,10 @@ export function ScreeningPanel() {
               </p>
             ) : (
               <div className="space-y-2">
-                {history.slice(0, 5).map((item: any, index: number) => (
+                {history.slice(0, 5).map((item: { riskLevel: "Low" | "Medium" | "High"; confidence: number; date: string }, index: number) => (
                   <div key={index} className="border rounded p-2 text-sm">
                     <p>
-                      <span className={riskColors[item.riskLevel].text}>
+                      <span className={riskColors[item.riskLevel as keyof typeof riskColors].text}>
                         <strong>{item.riskLevel}</strong>
                       </span>{" "}
                       ({item.confidence}%)
