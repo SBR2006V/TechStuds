@@ -150,13 +150,19 @@ export function ScreeningPanel() {
           {result && (
             <div>
               <p>
-                Risk:{" "}
-                <span className={riskColors[result.riskLevel].text}>
-                  {result.riskLevel}
-                </span>
-              </p>
-              <p>Confidence: {result.confidence}%</p>
-              <p>{result.recommendation}</p>
+  Risk:{" "}
+  <span className={riskColors[result.riskLevel].text}>
+    {result.riskLevel}
+  </span>
+</p>
+
+<p>Confidence: {result.confidence}%</p>
+
+<p>{result.recommendation}</p>
+
+<p className="text-xs text-muted-foreground mt-2 italic">
+  ⚠️ This is an AI-based prototype and not a medical diagnosis.
+</p>
             </div>
           )}
         </div>
