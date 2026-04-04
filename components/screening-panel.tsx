@@ -2,10 +2,7 @@
 
 import { useState, useRef } from "react"
 import Image from "next/image"
-import {
-  Upload,
-  X,
-} from "lucide-react"
+import { Upload, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 type AnalysisResult = {
@@ -20,7 +17,7 @@ export function ScreeningPanel() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // ✅ STEP 2: LOAD HISTORY (correct place)
+  // Load history
   const history =
     typeof window !== "undefined"
       ? JSON.parse(localStorage.getItem("history") || "[]")
@@ -79,7 +76,7 @@ export function ScreeningPanel() {
             : "Likely benign, continue routine monitoring.",
       })
 
-      // ✅ STEP 1: SAVE HISTORY
+      // Save history
       const newEntry = {
         riskLevel,
         confidence: data.confidence,
@@ -113,7 +110,7 @@ export function ScreeningPanel() {
   return (
     <div className="flex flex-col lg:flex-row gap-6">
       
-      {/* Upload */}
+      {/* Upload Section */}
       <div className="flex-1">
         <div className="rounded-xl border p-6">
           <h2 className="text-lg font-semibold mb-4">Upload Skin Image</h2>
@@ -149,7 +146,7 @@ export function ScreeningPanel() {
             </Button>
 
             <Button onClick={handleAnalyze} disabled={!image || analyzing}>
-              {analyzing ? "Analyzing..." : "Analyze"}
+              {analyzing ? "Analyzing image with AI..." : "Analyze with AI"}
             </Button>
           </div>
         </div>
@@ -160,6 +157,12 @@ export function ScreeningPanel() {
         <div className="rounded-xl border p-6">
           <h2 className="text-lg font-semibold mb-4">Results</h2>
 
+          {/* AI label */}
+          <p className="text-xs text-muted-foreground mb-2">
+            AI-powered skin analysis
+          </p>
+
+          {/* Result */}
           {result && (
             <div>
               <p>
@@ -171,7 +174,11 @@ export function ScreeningPanel() {
 
               <p>Confidence: {result.confidence}%</p>
 
-              <p>{result.recommendation}</p>
+              <p className="text-xs text-muted-foreground">
+                Higher confidence indicates stronger model certainty.
+              </p>
+
+              <p className="mt-2">{result.recommendation}</p>
 
               <p className="text-xs text-muted-foreground mt-2 italic">
                 ⚠️ This is an AI-based prototype and not a medical diagnosis.
@@ -179,18 +186,26 @@ export function ScreeningPanel() {
             </div>
           )}
 
-          {/* ✅ STEP 3: SHOW HISTORY */}
-          <div className="mt-6">
-            <h3 className="text-md font-semibold mb-2">Previous Scans</h3>
+          {/* Divider */}
+          <hr className="my-4" />
+
+          {/* History */}
+          <div>
+            <h3 className="text-md font-semibold mb-2">Screening History</h3>
 
             {history.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No history yet</p>
+              <p className="text-sm text-muted-foreground">
+                No screenings yet. Upload an image to get started.
+              </p>
             ) : (
               <div className="space-y-2">
                 {history.slice(0, 5).map((item: any, index: number) => (
                   <div key={index} className="border rounded p-2 text-sm">
                     <p>
-                      <strong>{item.riskLevel}</strong> ({item.confidence}%)
+                      <span className={riskColors[item.riskLevel].text}>
+                        <strong>{item.riskLevel}</strong>
+                      </span>{" "}
+                      ({item.confidence}%)
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {item.date}
@@ -200,7 +215,6 @@ export function ScreeningPanel() {
               </div>
             )}
 
-            {/* Optional clear button */}
             <button
               onClick={() => {
                 localStorage.removeItem("history")
