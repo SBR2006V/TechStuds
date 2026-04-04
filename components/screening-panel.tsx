@@ -4,15 +4,9 @@ import { useState, useRef } from "react"
 import Image from "next/image"
 import {
   Upload,
-  Camera,
-  Loader2,
-  AlertCircle,
-  CheckCircle,
-  UserCheck,
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
 
 type AnalysisResult = {
   riskLevel: "Low" | "Medium" | "High"
@@ -25,6 +19,12 @@ export function ScreeningPanel() {
   const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // ✅ STEP 2: LOAD HISTORY (correct place)
+  const history =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("history") || "[]")
+      : []
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -66,16 +66,30 @@ export function ScreeningPanel() {
         "High Risk": "High",
       }
 
+      const riskLevel = riskMap[data.prediction] || "Low"
+
       setResult({
-  riskLevel: riskMap[data.prediction] || "Low",
-  confidence: data.confidence,
-  recommendation:
-    riskMap[data.prediction] === "High"
-      ? "Consult a dermatologist immediately."
-      : riskMap[data.prediction] === "Medium"
-      ? "Monitor the lesion and consider a check-up."
-      : "Likely benign, continue routine monitoring.",
-})
+        riskLevel,
+        confidence: data.confidence,
+        recommendation:
+          riskLevel === "High"
+            ? "Consult a dermatologist immediately."
+            : riskLevel === "Medium"
+            ? "Monitor the lesion and consider a check-up."
+            : "Likely benign, continue routine monitoring.",
+      })
+
+      // ✅ STEP 1: SAVE HISTORY
+      const newEntry = {
+        riskLevel,
+        confidence: data.confidence,
+        date: new Date().toLocaleString(),
+      }
+
+      const oldHistory = JSON.parse(localStorage.getItem("history") || "[]")
+      const updatedHistory = [newEntry, ...oldHistory]
+
+      localStorage.setItem("history", JSON.stringify(updatedHistory))
 
     } catch (error) {
       console.error(error)
@@ -91,24 +105,23 @@ export function ScreeningPanel() {
   }
 
   const riskColors = {
-    Low: { bg: "bg-green-100", text: "text-green-700", border: "border-green-200" },
-    Medium: { bg: "bg-yellow-100", text: "text-yellow-700", border: "border-yellow-200" },
-    High: { bg: "bg-red-100", text: "text-red-700", border: "border-red-200" },
+    Low: { text: "text-green-700" },
+    Medium: { text: "text-yellow-700" },
+    High: { text: "text-red-700" },
   }
 
   return (
     <div className="flex flex-col lg:flex-row gap-6">
-      {/* Upload Area */}
+      
+      {/* Upload */}
       <div className="flex-1">
-        <div className="rounded-xl border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">
-            Upload Skin Image
-          </h2>
+        <div className="rounded-xl border p-6">
+          <h2 className="text-lg font-semibold mb-4">Upload Skin Image</h2>
 
           {!image ? (
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-secondary/30 p-12 cursor-pointer hover:border-primary/40 hover:bg-primary/5"
+              className="flex flex-col items-center justify-center border-2 border-dashed p-12 cursor-pointer"
             >
               <Upload className="h-7 w-7 mb-2" />
               <p>Click to upload</p>
@@ -142,29 +155,63 @@ export function ScreeningPanel() {
         </div>
       </div>
 
-      {/* Results */}
+      {/* Results + History */}
       <div className="flex-1">
         <div className="rounded-xl border p-6">
-          <h2>Results</h2>
+          <h2 className="text-lg font-semibold mb-4">Results</h2>
 
           {result && (
             <div>
               <p>
-  Risk:{" "}
-  <span className={riskColors[result.riskLevel].text}>
-    {result.riskLevel}
-  </span>
-</p>
+                Risk Level:{" "}
+                <span className={riskColors[result.riskLevel].text}>
+                  {result.riskLevel} Risk
+                </span>
+              </p>
 
-<p>Confidence: {result.confidence}%</p>
+              <p>Confidence: {result.confidence}%</p>
 
-<p>{result.recommendation}</p>
+              <p>{result.recommendation}</p>
 
-<p className="text-xs text-muted-foreground mt-2 italic">
-  ⚠️ This is an AI-based prototype and not a medical diagnosis.
-</p>
+              <p className="text-xs text-muted-foreground mt-2 italic">
+                ⚠️ This is an AI-based prototype and not a medical diagnosis.
+              </p>
             </div>
           )}
+
+          {/* ✅ STEP 3: SHOW HISTORY */}
+          <div className="mt-6">
+            <h3 className="text-md font-semibold mb-2">Previous Scans</h3>
+
+            {history.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No history yet</p>
+            ) : (
+              <div className="space-y-2">
+                {history.slice(0, 5).map((item: any, index: number) => (
+                  <div key={index} className="border rounded p-2 text-sm">
+                    <p>
+                      <strong>{item.riskLevel}</strong> ({item.confidence}%)
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.date}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Optional clear button */}
+            <button
+              onClick={() => {
+                localStorage.removeItem("history")
+                location.reload()
+              }}
+              className="text-xs text-red-500 mt-2"
+            >
+              Clear History
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
