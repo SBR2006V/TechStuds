@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 
 def predict_image(image):
+    print("AI Model V2 Running")
     img = np.array(image)
     img = cv2.resize(img, (224, 224))
 
